@@ -6,7 +6,7 @@ def client():
     ip = socket.gethostbyname("raspberrypi.lan")
   except:
     ip = socket.gethostbyname("raspberrypi.local")
-  c_port = 4000  # Make sure it's within the > 1024 $$ <65535 range
+  c_port = 4000
 
   theTuple = (ip, c_port)
 
