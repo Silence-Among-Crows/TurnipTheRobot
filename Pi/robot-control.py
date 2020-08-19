@@ -85,6 +85,12 @@ def resetServo():
     executeServoControl(1, v_Angle)
     executeServoControl(0, h_Angle)
 
+def KillHDMI():
+    os.system("sudo /opt/vc/bin/tvservice -p > /dev/null 2>&1")
+    os.system("sudo /opt/vc/bin/tvservice -o > /dev/null 2>&1")
+    ser.write("Motor\nLightOFF\n".encode('utf-8'))
+    print("HDMI is now OFF")
+
 def Forward():
     ser.write("Motor\nForward\n".encode('utf-8'))
 
@@ -98,41 +104,145 @@ def TurnLeft():
 def TurnRight():
     executeMovement("Right_Stop")
     executeMovement("Left_Go")
+
+def LookLeft():
+    global h_Angle
+    global v_Angle
+    servo = 0
+    angle = h_Angle - 10
+    if(angle <= 180 and angle >= 0 ):
+        h_Angle = angle
+    executeServoControl(servo, h_Angle)
     
+def LookRight():
+    global h_Angle
+    global v_Angle
+    servo = 0
+    angle = h_Angle + 10
+    if(angle <= 180 and angle >= 0 ):
+        h_Angle = angle
+    executeServoControl(servo, h_Angle)
+    
+def LookUp():
+    global h_Angle
+    global v_Angle
+    servo = 1
+    angle = v_Angle - 10
+    if(angle <= 120 and angle >= 0 ):
+        v_Angle = angle
+    executeServoControl(servo, v_Angle)
+    
+def LookDown():
+    global h_Angle
+    global v_Angle
+    servo = 1
+    angle = v_Angle + 10
+    if(angle <= 120 and angle >= 0 ):
+        v_Angle = angle
+    executeServoControl(servo, v_Angle)
+
+def SetAngle(servo, angle):
+    global h_Angle
+    global v_Angle
+    if (servo == 0):
+        if(angle <= 180 and angle >= 0 ):
+            h_Angle = angle
+            executeServoControl(servo, angle)
+        elif(angle > 180):
+            h_Angle = 180
+            executeServoControl(servo, 180)
+        elif(angle < 0):
+            h_Angle = 0
+            executeServoControl(servo, 0)
+    if (servo == 1):
+        v_Angle = angle
+        if(angle <= 120 and angle >= 0 ):
+            v_Angle = angle
+            executeServoControl(servo, angle)
+        elif(angle > 120):
+            v_Angle = 120
+            executeServoControl(servo, 120)
+        elif(angle < 0):
+            v_Angle = 0
+            executeServoControl(servo, 0)
+
 def aiControl():
     global manualMode
+    global drivingForward
+    print("AI mode starting...")
+    print("Ready for socket connection...")
     host = ''
     port = 4000
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((host, port))
-    s.listen(1)
-    conn, addr = s.accept()
-    print("Robot is now controlled by AI")
-    print('Connected to:', addr)
-    while (True):
-        data = conn.recv(1024)
-        data = data.decode('utf-8')
-        print(f"From AI: {data}")
-        if(data == "Forward"):
-            Forward()
-            drivingForward = True
-        elif(data == "Stop"):
-            Stop()
-            drivingForward = False
-        elif(data == "TurnLeft"):
-            TurnLeft()
-        elif(data == "TurnRight"):
-            TurnRight()
-        elif(data == "StopTurning"):
-            if(drivingForward  == True):
+    try:
+        s.bind((host, port))
+        s.listen(1)
+        conn, addr = s.accept()
+        print("Robot is now controlled by AI")
+        print('Connected to:', addr)
+        awaitingHAngle = False
+        awaitingVAngle = False
+        while (True):
+            data = conn.recv(1024)
+            data = data.decode('utf-8')
+            print(f"From AI: {data}")
+            if(data == "Forward"):
                 Forward()
-            else:
+                drivingForward = True
+            elif(data == "Stop"):
                 Stop()
-        elif(data == "EndAI"):
-            s.close()
-            manualMode = True
-            break
-
+                drivingForward = False
+            elif(data == "TurnLeft"):
+                TurnLeft()
+            elif(data == "TurnRight"):
+                TurnRight()
+            elif(data == "StopTurning"):
+                if(drivingForward  == True):
+                    Forward()
+                else:
+                    Stop()
+            elif(data == "ResetView"):
+                resetServo()
+            elif(data == "LookLeft"):
+                LookLeft()
+            elif(data == "LookRight"):
+                LookRight()
+            elif(data == "LookUp"):
+                LookUp()
+            elif(data == "LookDown"):
+                LookDown()
+            elif(data == "SetHAngle"):
+                awaitingHAngle = True
+                awaitingVAngle = False
+            elif(data == "SetVAngle"):
+                awaitingVAngle = True
+                awaitingHAngle = False
+            elif(awaitingHAngle):
+                try:
+                    angle = int(data)
+                    SetAngle(0, angle)
+                    awaitingHAngle = False
+                except:
+                    print("Tried setting angle to string")
+                    awaitingHAngle = False
+            elif(awaitingVAngle):
+                try:
+                    angle = int(data)
+                    SetAngle(1, angle)
+                    awaitingVAngle = False
+                except:
+                    print("Tried setting angle to string")
+                    awaitingVAngle = False
+            elif(data == "EndAI"):
+                s.close()
+                manualMode = True
+                break
+    except Exception as e:
+        print(e)
+        print("Waiting 5s for socket to close...")
+        s.close()
+        time.sleep(5)
+    
 def manualControl():
     global gamepad
     global manualMode
@@ -147,6 +257,7 @@ def manualControl():
     y_Btn = 308
     select = 314
     start = 315
+    home = 306
     L_Trigger = 312
     R_Trigger = 313
     H_Dpad = 16
@@ -155,10 +266,13 @@ def manualControl():
     print("Robot is now controlled manually")
     for event in gamepad.read_loop():
         if(event.type == ecodes.EV_KEY):
-            if(event.code == start and event.sec > lastSwitchTime):
+            #print(event.code)
+            if(event.code == home and event.sec > lastSwitchTime):
                 lastSwitchTime = event.sec
                 manualMode = False
                 break
+            if(event.code == start and event.value == 1):
+                KillHDMI()
             if(event.code == R_Trigger):
                 if(event.value == 0):
                     if(drivingForward == True):
@@ -193,7 +307,7 @@ def manualControl():
                 if(event.value == 1):
                     executeServoControl(0, 90)
                     executeServoControl(1, 140)
-                    os.system("./end-robot.sh && shutdown now")
+                    os.system("sudo shutdown now")
                     
         elif(event.type == ecodes.EV_ABS
              and event.value != 0):
@@ -212,33 +326,41 @@ def manualControl():
 
 print("---Booting up Turnip---")
 StartStream()
-print("---Stream running---")
+print("---Stream is running---")
 while(True):
-    if(arduinoConnected == False):
-        connectArduino()
-    elif(BLTControllerConnected == False):
-        connectBLTController()
-    else: 
-        resetServo()
+    try:
+        if(arduinoConnected == False):
+            connectArduino()
+        elif(BLTControllerConnected == False):
+            connectBLTController()
+        else: 
+            ser.write("Clean\n".encode('utf-8'))
+            gamepad.active_keys(verbose = True)
+            resetServo()
+        if (manualMode == True):
+            manualControl()
+            print("Manual mode ending...")
+        else:
+            aiControl()
+            print("Ai mode ending...")
+    except Exception as e:
+        ignoreException = False
+        manualMode = True
         try:
-            if (manualMode == True):
-                manualControl()
-                print("Manual mode ending...")
-            else:
-                aiControl()
-                print("Ai mode ending...")
-        except Exception as e:
+            ser.write("Clean\n".encode('utf-8'))
+        except:
+            if(arduinoConnected == True):
+                arduinoConnected = False
+                print("Arduino has disconnected")
+                ignoreException = True
+        try:
+            gamepad.active_keys(verbose = True)
+        except:
+            if(BLTControllerConnected == True):
+                BLTControllerConnected = False
+                print("contoller has disconnected")
+                ignoreException = True
+        if (ignoreException == False):
             print(e)
-            try:
-                ser.write("Clean\n".encode('utf-8'))
-            except:
-                if(arduinoConnected == True):
-                    arduinoConnected = False
-                    print("Arduino has disconnected")
-            try:
-                gamepad.active_keys(verbose = True)
-            except:
-                if(BLTControllerConnected == True):
-                    BLTControllerConnected = False
-                    print("contoller has disconnected")
-            time.sleep(2)
+        time.sleep(2)
+        StartStream(True)
