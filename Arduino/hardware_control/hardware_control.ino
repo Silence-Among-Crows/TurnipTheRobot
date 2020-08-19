@@ -3,6 +3,7 @@
 int chainPin = 9;
 int leftMotor = 10;
 int rightMotor = 11;
+int duinoLight = 13;
 
 Chain chain(chainPin);
 
@@ -21,17 +22,19 @@ void setup(){
   Serial.begin(9600);
   pinMode(leftMotor, OUTPUT);
   pinMode(rightMotor, OUTPUT);
+  pinMode(duinoLight, OUTPUT);
+  digitalWrite(duinoLight, HIGH);
 }
 
 void loop() {
   // update chain
   chain.update();
   if (servo1.justConnected()){
-    servo1.setColor(1, 0, 0)
+    servo1.setColor(0, 0, 0)
           .setPosition(90);
   }
   if (servo2.justConnected()) {
-    servo2.setColor(1, 0, 0)
+    servo2.setColor(0, 0, 0)
           .setPosition(70);
   }
   
@@ -56,6 +59,12 @@ void loop() {
       fineMotorMode = true;
       servoMode = false;
       awaitingServo = false;
+    }
+    else if(incoming_state == "LightON"){
+      digitalWrite(duinoLight, HIGH);
+    }
+    else if(incoming_state == "LightOFF"){
+      digitalWrite(duinoLight, LOW);
     }
     else if(incoming_state == "Servo"){
       servoMode = true;
