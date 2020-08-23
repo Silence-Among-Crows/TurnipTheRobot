@@ -1,7 +1,7 @@
 import cv2
 #print(cv2.getBuildInformation())
 
-cap = cv2.VideoCapture("http://raspberrypi:8080/?action=stream")
+cap = cv2.VideoCapture("http://raspberrypi:8085/?action=stream")
  
 while(True):
     ret, frame = cap.read()
