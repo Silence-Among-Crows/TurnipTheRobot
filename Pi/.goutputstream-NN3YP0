@@ -4,6 +4,9 @@ from evdev import InputDevice, ecodes
 import os
 import socket
 import pathlib
+import subprocess
+import re
+from pydub.utils import mediainfo
 
 # Getting directory of audio files
 root_dir = pathlib.Path(__file__).parent.absolute()
@@ -19,29 +22,25 @@ manualMode = True
 lastSwitchTime = 0
 ser = serial.Serial()
 gamepad = None
-bootComplete = False
 
 # function to play sounds
-def playAudio(wavFileName, longAudio = False):
+def playAudio(wavFileName):
     try:
-        extraDuration = 2
         filePath = os.path.join(audio_path, f"{wavFileName}.wav")
+        # ripped this off stack overflow, I have no idea whats going on here, i just want the duration of the file jeez
+        duration = float(mediainfo(filePath)['duration'])
         os.system(f'omxplayer -o local {filePath} > /dev/null 2>&1 &')
-        if(longAudio):
-            time.sleep(extraDuration)
-        time.sleep(2)
+        time.sleep(duration)
     except Exception as e:
         print("Audio playback failed")
         print(e)
 
 # start video feed stream with option to kill past processes
-def StartStream(kill = True):
+def StartStream(kill = False):
     # > /dev/null 2>&1
     if(kill == True):
         os.system("killall mjpg_streamer > /dev/null 2>&1")
-        os.system("sudo fuser -k 8085/tcp")
-        time.sleep(0.5)
-    os.system("mjpg_streamer -i \"input_raspicam.so -x 640 -y 480 -fps 30\" -o \"output_http.so  -p 8085\" > /dev/null 2>&1 &")
+    os.system("mjpg_streamer -i \"input_raspicam.so -x 640 -y 480 -fps 30\" -o output_http.so > /dev/null 2>&1 &")
     playAudio("video-feed-online")
 
 # function to connect ot arduino slave through serial
@@ -76,8 +75,7 @@ def connectBLTController():
                     BLTControllerConnected = True
                     break
             except Exception as e:
-                # print(e)
-                continue
+                print(e)
         if(BLTControllerConnected == False):
             print("---No connection to controller---")
             time.sleep(5)
@@ -168,7 +166,7 @@ def LookUp():
     global v_Angle
     servo = 1
     angle = v_Angle - 10
-    if(angle <= 120 and angle >= 40 ):
+    if(angle <= 120 and angle >= 0 ):
         v_Angle = angle
     executeServoControl(servo, v_Angle)
     
@@ -177,7 +175,7 @@ def LookDown():
     global v_Angle
     servo = 1
     angle = v_Angle + 10
-    if(angle <= 120 and angle >= 40 ):
+    if(angle <= 120 and angle >= 0 ):
         v_Angle = angle
     executeServoControl(servo, v_Angle)
 
@@ -275,7 +273,7 @@ def aiControl():
                 elif(data == ""):
                     s.close()
                     manualMode = True
-                    print("Something went wrong... aborting AI", True)
+                    print("Something went wrong... aborting AI")
                     playAudio("ai-exception")
                     break
                 elif(awaitingVoiceLine):
@@ -310,7 +308,7 @@ def aiControl():
             time.sleep(5)
             if(retryCount >= 4):
                 print("Abandoning AI mode...")
-                playAudio("abandoning-ai-mode", True)
+                playAudio("abandoning-ai-mode")
                 manualMode = True
                 break
             retryCount += 1
@@ -396,25 +394,26 @@ def manualControl():
             elif(event.code == V_Dpad):
                 servo = 1
                 if(v_Angle + event.value * 10 <= 120
-                   and v_Angle + event.value >= 40 ):
+                   and v_Angle + event.value >= 0 ):
                     v_Angle += event.value * 10
                 executeServoControl(servo, v_Angle)
 
-print("---Booting up Turnip---")
-playAudio("turnip-is-alive", True)
-StartStream()
-print("---Stream is running---")
+bootComplete = False
 
 # main loop
+print("---Booting up Turnip---")
+playAudio("turnip-is-alive")
+StartStream()
+print("---Stream is running---")
 while(True):
     try:
         if(arduinoConnected == False):
             connectArduino()
         elif(BLTControllerConnected == False):
             connectBLTController()
-        elif(bootComplete == False and BLTControllerConnected == True):
-            playAudio("boot-complete")
-            bootComplete = True
+            if(bootComplete == False):
+                playAudio("boot-complete")
+                bootComplete = True
         else: 
             ser.write("Clean\n".encode('utf-8'))
             gamepad.active_keys(verbose = True)
