@@ -12,6 +12,7 @@ audio_path = os.path.join(root_dir, "Audio")
 print(audio_path)
 
 # global variables
+jetsonHostName = "x-jetson"
 arduinoConnected = False
 BLTControllerConnected = False
 drivingForward = False
@@ -20,6 +21,7 @@ lastSwitchTime = 0
 ser = serial.Serial()
 gamepad = None
 bootComplete = False
+servoStep = 5
 
 # function to play sounds
 def playAudio(wavFileName, longAudio = False):
@@ -34,14 +36,12 @@ def playAudio(wavFileName, longAudio = False):
         print("Audio playback failed")
         print(e)
 
-# start video feed stream with option to kill past processes
-def StartStream(kill = True):
-    # > /dev/null 2>&1
-    if(kill == True):
-        os.system("killall mjpg_streamer > /dev/null 2>&1")
-        os.system("sudo fuser -k 8085/tcp")
-        time.sleep(0.5)
-    os.system("mjpg_streamer -i \"input_raspicam.so -x 640 -y 480 -fps 30\" -o \"output_http.so  -p 8085\" > /dev/null 2>&1 &")
+# start video feed stream script
+def StartStream():
+    global jetsonHostName
+    os.system("pkill -f start-stream.py")
+    os.system("sudo fuser -k 555/tcp")
+    os.system(f"python3 /home/pi/Repos/TurnipTheRobot/Pi/start-stream.py -s {jetsonHostName} > /dev/null 2>&1 &")
     playAudio("video-feed-online")
 
 # function to connect ot arduino slave through serial
@@ -149,7 +149,7 @@ def LookLeft():
     global h_Angle
     global v_Angle
     servo = 0
-    angle = h_Angle - 10
+    angle = h_Angle - servoStep
     if(angle <= 180 and angle >= 0 ):
         h_Angle = angle
     executeServoControl(servo, h_Angle)
@@ -158,7 +158,7 @@ def LookRight():
     global h_Angle
     global v_Angle
     servo = 0
-    angle = h_Angle + 10
+    angle = h_Angle + servoStep
     if(angle <= 180 and angle >= 0 ):
         h_Angle = angle
     executeServoControl(servo, h_Angle)
@@ -167,7 +167,7 @@ def LookUp():
     global h_Angle
     global v_Angle
     servo = 1
-    angle = v_Angle - 10
+    angle = v_Angle - servoStep
     if(angle <= 120 and angle >= 40 ):
         v_Angle = angle
     executeServoControl(servo, v_Angle)
@@ -176,7 +176,7 @@ def LookDown():
     global h_Angle
     global v_Angle
     servo = 1
-    angle = v_Angle + 10
+    angle = v_Angle + servoStep
     if(angle <= 120 and angle >= 40 ):
         v_Angle = angle
     executeServoControl(servo, v_Angle)
@@ -228,6 +228,8 @@ def aiControl():
             print("Robot is now controlled by AI")
             print('Connected to:', addr)
             playAudio("socket-connected")
+            StartStream()
+            print("---Stream is running---")
             awaitingHAngle = False
             awaitingVAngle = False
             awaitingVoiceLine = False
@@ -402,8 +404,6 @@ def manualControl():
 
 print("---Booting up Turnip---")
 playAudio("turnip-is-alive", True)
-StartStream()
-print("---Stream is running---")
 
 # main loop
 while(True):
@@ -450,4 +450,3 @@ while(True):
             print(e)
             playAudio("exception")
             playAudio("restarting-video-feed")
-            StartStream(True)
