@@ -4,6 +4,10 @@ My code for creating turnip, the little robot that could!
 
 Turnip is an open source robot that makes use of the jetson nano to follow an object. I am using ssd-mobilenet-v2 and OpenCV to detect objects and then deciding based on the given data on what to do with it. Theres a manual mode too!
 
+**Demo video:**
+
+[![Turnip Demo](https://img.youtube.com/vi/9klELAZi3hI/0.jpg)](https://www.youtube.com/watch?v=9klELAZi3hI "Turnip Demo")
+
 ---
 
 ## What you need to build turnip:
