@@ -10,6 +10,14 @@ Turnip is an open source robot that makes use of the jetson nano to follow an ob
 
 ---
 
+## More about Turnip
+
+Turnip has two methods of running. The first method is for where your jetson nano is running remotely. This was how I first made turnip, then I later figured out how I could safely mount power and connect the jetson directly on turnip. I then connected a short lan cable to reduce latency and after finishing method 1, I realized I no longer needed the arduino, since the jetson has a breakout board. I thus also didnt need to run the main python script on the pi anymore, all the pi needs to do now is send video to the jetson. The meccanoid servos have propriatary drivers to run on arduino. So I would then need to write my own python library for it. (I am writing all of this before actually doing method 2, and I am basically documenting as I speak haha). But all in all, method 2 completely removes the need for the arduino (in theory).
+
+**Note to self: update this if method 2 fails haha**
+
+---
+
 ## What you need to build turnip:
 
 - A Jetson Nano (or other jetson development board)
@@ -80,14 +88,6 @@ Alright we need to install the rpi camera (v1.3 or v2). slide in the camera ribb
 - vnc
 
 select finish once they are selected. You can now ssh into your pi too! this makes it a bit easier and quicker to setup the robot. from your jetson, run `ssh raspberrypi.local`, trust it, as it is your raspberry pi. Default password is raspbian. If that all works hooray you're done for now. if this does not work, you can ssh in via the ip. from the pi's terminal run `ipconfig` and look for `inet x.x.x.x` under wlan0 if you are on wifi, or eth0 if you are on ethernet. the `x.x.x.x` will be your IP address. Now try ssh in from your jetson with `ssh x.x.x.x` where `x.x.x.x` is your ip address.
-
----
-
-## More about Turnip
-
-Turnip has two methods of running. The first method is for where your jetson nano is running remotely. This was how I first made turnip, then I later figured out how I could safely mount power and connect the jetson directly on turnip. I then connected a short lan cable to reduce latency and after finishing method 1, I realized I no longer needed the arduino, since the jetson has a breakout board. I thus also didnt need to run the main python script on the pi anymore, all the pi needs to do now is send video to the jetson. The meccanoid servos have propriatary drivers to run on arduino. So I would then need to write my own python library for it. (I am writing all of this before actually doing method 2, and I am basically documenting as I speak haha). But all in all, method 2 completely removes the need for the arduino (in theory).
-
-**Note to self: update this if method 2 fails haha**
 
 ---
 
