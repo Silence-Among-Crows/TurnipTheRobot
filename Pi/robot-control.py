@@ -23,26 +23,33 @@ gamepad = None
 bootComplete = False
 servoStep = 5
 
+#WHY WONT THE CAMERA START ON STARTUP
+time.sleep(2)
+
 # function to play sounds
 def playAudio(wavFileName, longAudio = False):
     try:
         extraDuration = 2
         filePath = os.path.join(audio_path, f"{wavFileName}.wav")
         os.system(f'omxplayer -o local {filePath} > /dev/null 2>&1 &')
-        if(longAudio):
+        if(longAudio == True):
             time.sleep(extraDuration)
         time.sleep(2)
     except Exception as e:
         print("Audio playback failed")
         print(e)
 
-# start video feed stream script
-def StartStream():
-    global jetsonHostName
-    os.system("pkill -f start-stream.py")
-    os.system("sudo fuser -k 555/tcp")
-    os.system(f"python3 /home/pi/Repos/TurnipTheRobot/Pi/start-stream.py -s {jetsonHostName} > /dev/null 2>&1 &")
-    playAudio("video-feed-online")
+# start video feed stream script YOU DO NOT NEED THIS, THE STREAM SHOULD START ON BOOT
+# def StartStream():
+    # global jetsonHostName
+    # try:
+        # os.system("pkill -f start-stream.py")
+        # os.system("fuser -k 5555/tcp")
+        # os.system(f"python3 /home/pi/Repos/TurnipTheRobot/Pi/start-stream.py -s {jetsonHostName} > /dev/null 2>&1 &")
+        # playAudio("video-feed-online")
+        # print("Stream started")
+    # except:
+        # print("Stream failed")
 
 # function to connect ot arduino slave through serial
 def connectArduino():
@@ -228,8 +235,6 @@ def aiControl():
             print("Robot is now controlled by AI")
             print('Connected to:', addr)
             playAudio("socket-connected")
-            StartStream()
-            print("---Stream is running---")
             awaitingHAngle = False
             awaitingVAngle = False
             awaitingVoiceLine = False
@@ -277,8 +282,8 @@ def aiControl():
                 elif(data == ""):
                     s.close()
                     manualMode = True
-                    print("Something went wrong... aborting AI", True)
-                    playAudio("ai-exception")
+                    print("Something went wrong... aborting AI")
+                    playAudio("ai-exception", True)
                     break
                 elif(awaitingVoiceLine):
                     playAudio(data)
@@ -385,7 +390,7 @@ def manualControl():
                     executeServoControl(0, 90)
                     executeServoControl(1, 140)
                     playAudio("shutting-down")
-                    os.system("sudo shutdown now")
+                    quit()
                     
         elif(event.type == ecodes.EV_ABS
              and event.value != 0):
@@ -404,7 +409,6 @@ def manualControl():
 
 print("---Booting up Turnip---")
 playAudio("turnip-is-alive", True)
-
 # main loop
 while(True):
     try:
@@ -449,4 +453,3 @@ while(True):
         if (ignoreException == False):
             print(e)
             playAudio("exception")
-            playAudio("restarting-video-feed")
