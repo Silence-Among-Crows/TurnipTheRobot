@@ -70,8 +70,8 @@ def CentreObject(detection, width, height, timeTaken):
     global chaseTarget
     global inputHold
     global lastNetworkRequestTime
-    recordLastRequest = True
-    inputHold = 0.3
+    recordLastRequest = False
+    inputHold = 0.2
     xBoundMin = 0
     yBoundMin = 0
     xBoundMax = 0
@@ -99,20 +99,45 @@ def CentreObject(detection, width, height, timeTaken):
     
     #check to see if last movement was too quick, then send movements over scoket to pi
     if(time.time() - lastNetworkRequestTime > timeTaken + 0.1):
+        if(detection.Height < height / 2 or detection.Width < width / 3):
+            s.send("Forward".encode('utf-8'))
+            recordLastRequest = True
+        else:
+            s.send("Stop".encode('utf-8'))
+            recordLastRequest = True
+            
+        if(recordLastRequest == True):
+            lastNetworkRequestTime = time.time()
+        
+        time.sleep(0.1)
+        
         if (x < xBoundMin):
             s.send(f"{moveType}Left".encode('utf-8'))
             time.sleep(inputHold)
             s.send("StopTurning".encode('utf-8'))
+            recordLastRequest = True
         elif (x > xBoundMax):
             s.send(f"{moveType}Right".encode('utf-8'))
             time.sleep(inputHold)
             s.send("StopTurning".encode('utf-8'))
-        elif (y < yBoundMin or (detection.Top == 0 and detection.Bottom <= height and y < yBoundMax)):
-            s.send("LookUp".encode('utf-8'))
-        elif (y > yBoundMax or (detection.Bottom >= height and detection.Top > 0 and y > yBoundMin)):
-            s.send("LookDown".encode('utf-8'))
+            recordLastRequest = True
         else:
             recordLastRequest = False
+        
+        if(recordLastRequest == True):
+            lastNetworkRequestTime = time.time()
+            
+        time.sleep(0.1)
+            
+        if (y < yBoundMin or (detection.Top == 0 and detection.Bottom <= height and y < yBoundMax)):
+            s.send("LookUp".encode('utf-8'))
+            recordLastRequest = True
+        elif (y > yBoundMax or (detection.Bottom >= height and detection.Top > 0 and y > yBoundMin)):
+            s.send("LookDown".encode('utf-8'))
+            recordLastRequest = True
+        else:
+            recordLastRequest = False
+            
         if(recordLastRequest == True):
             lastNetworkRequestTime = time.time()
 
@@ -159,6 +184,8 @@ while True:
     else:
         if(framesSinceTarget + 1 <= 1000):
             framesSinceTarget += 1
+        if(framesSinceTarget <= 5):
+            s.send("Stop".encode('utf-8'))
             
     
     # COnvert cuda image back to output image, and overlay fps, then display.
