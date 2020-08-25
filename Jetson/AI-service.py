@@ -99,17 +99,18 @@ def CentreObject(detection, width, height, timeTaken):
     
     #check to see if last movement was too quick, then send movements over scoket to pi
     if(time.time() - lastNetworkRequestTime > timeTaken + 0.1):
-        if(detection.Height < height / 2 or detection.Width < width / 3):
-            s.send("Forward".encode('utf-8'))
-            recordLastRequest = True
-        else:
-            s.send("Stop".encode('utf-8'))
-            recordLastRequest = True
+        if(chaseTarget == true):
+            if(detection.Height < height / 2 or detection.Width < width / 3):
+                s.send("Forward".encode('utf-8'))
+                recordLastRequest = True
+            else:
+                s.send("Stop".encode('utf-8'))
+                recordLastRequest = True
+                
+            if(recordLastRequest == True):
+                lastNetworkRequestTime = time.time()
             
-        if(recordLastRequest == True):
-            lastNetworkRequestTime = time.time()
-        
-        time.sleep(0.1)
+            time.sleep(0.1)
         
         if (x < xBoundMin):
             s.send(f"{moveType}Left".encode('utf-8'))
