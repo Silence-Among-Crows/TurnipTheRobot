@@ -1,0 +1,16 @@
+# function to connect ot arduino slave through serial
+def connectArduino():
+    global arduinoConnected
+    global ser
+    for i in range(0,4):
+        try:
+            ser = serial.Serial(f'/dev/ttyUSB{i}', 9600)
+            arduinoConnected = True
+            print(f"Connected to arduino at USB{i}")
+            playAudio("arduino-connected")
+        except:
+            pass
+    if(arduinoConnected == False):
+        print("---No connection to arduino---")
+        arduinoConnected = False
+        time.sleep(5)
