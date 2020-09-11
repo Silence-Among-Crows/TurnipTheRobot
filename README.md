@@ -10,6 +10,14 @@ Turnip is an open source robot that makes use of the jetson nano to follow an ob
 
 ---
 
+## More about Turnip
+
+Turnip has two methods of running. The first method is for where your jetson nano is running remotely. This was how I first made turnip, then I later figured out how I could safely mount power and connect the jetson directly on turnip. I then connected a short lan cable to reduce latency and after finishing method 1, I realized I no longer needed the arduino, since the jetson has a breakout board. I thus also didnt need to run the main python script on the pi anymore, all the pi needs to do now is send video to the jetson. The meccanoid servos have propriatary drivers to run on arduino. So I would then need to write my own python library for it. (I am writing all of this before actually doing method 2, and I am basically documenting as I speak haha). But all in all, method 2 completely removes the need for the arduino (in theory).
+
+**Note to self: update this if method 2 fails haha**
+
+---
+
 ## What you need to build turnip:
 
 - A Jetson Nano (or other jetson development board)
@@ -33,7 +41,7 @@ Turnip is an open source robot that makes use of the jetson nano to follow an ob
 
 [Then install Jetson Inferance](https://github.com/dusty-nv/jetson-inference/blob/master/docs/building-repo-2.md) Make sure the **ssd-mobile-net-v2** model gets installed
 
-cd into your home folder (`cd ~`) and create a folder called Repos: `mkdir Repos`. Now cd into Repos: `cd Repos`, and clone this repo: `git clone https://github.com/Silence-Among-Crows/TurnipTheRobot.git`. open TurnipTheRobot and then the jetson folder: `cd TurnipTheRobot/Jetson`. This will be where you run the remote ai script and turnip script. I suggest setting up remote sharing ([credit to this form thread](https://forums.developer.nvidia.com/t/jetson-nano-vnc-headless-connections/77399)) for your jetson so you may connect remotely and launch this script from a laptop or seperate computer:
+cd into your home folder (`cd ~`) and create a folder called Repos: `mkdir Repos`. Now cd into Repos: `cd Repos`, and clone this repo: `git clone https://github.com/Silence-Among-Crows/TurnipTheRobot.git`. open TurnipTheRobot and then the jetson folder: `cd TurnipTheRobot/Jetson`. This will be where you run the ai script. I suggest setting up remote sharing ([credit to this form thread](https://forums.developer.nvidia.com/t/jetson-nano-vnc-headless-connections/77399)) for your jetson so you may connect remotely and launch this script from a laptop or seperate computer:
 
 ``` bash
 sudo apt update
@@ -54,9 +62,9 @@ Now you need to note down your IP address. Get this by looking typing this comma
 
 ## Setting up your Raspberry Pi:
 
-Follow the initial Raspberry Pi setup, being sure to use the **Raspberry Pi OS (32-bit) with desktop** download, **NOT** the one with recommended software. It's unnesesary clutter.
+Follow this initial Raspberry Pi setup, being sure to use the **Raspberry Pi OS (32-bit) with desktop** download, **NOT** the one with recommended software. It's unnesesary clutter.
 
-cd into your home folder: `cd ~` and create a folder called Repos: `mkdir Repos`. Now cd into Repos (`cd Repos`), and clone this repo: `git clone https://github.com/Silence-Among-Crows/TurnipTheRobot.git`. Open TurnipTheRobot and then the pi folder: `cd TurnipTheRobot/Method/Pi`. This will be where you run the robot script or stream script.
+cd into your home folder: `cd ~` and create a folder called Repos: `mkdir Repos`. Now cd into Repos (`cd Repos`), and clone this repo: `git clone https://github.com/Silence-Among-Crows/TurnipTheRobot.git`. open TurnipTheRobot and then the pi folder: `cd TurnipTheRobot/Pi`. This will be where you run the robot script.
 
 Alright lets install some dependancies. 
 
@@ -81,7 +89,17 @@ Alright we need to install the rpi camera (v1.3 or v2). slide in the camera ribb
 
 select finish once they are selected. You can now ssh into your pi too! this makes it a bit easier and quicker to setup the robot. from your jetson, run `ssh raspberrypi.local`, trust it, as it is your raspberry pi. Default password is raspbian. If that all works hooray you're done for now. if this does not work, you can ssh in via the ip. from the pi's terminal run `ipconfig` and look for `inet x.x.x.x` under wlan0 if you are on wifi, or eth0 if you are on ethernet. the `x.x.x.x` will be your IP address. Now try ssh in from your jetson with `ssh x.x.x.x` where `x.x.x.x` is your ip address.
 
-Now, in the raspberry pi, go into the pi folder in my repo: `cd ~/TurnipTheRobot/Pi` and run the start-stream script: `python3 start-stream.sh &` . The `&` makes it run in the background. Now open up the robot-control script and we are going to replace my jetson host name with your jetson ip address you noted down earlier: `sudo nano robot-control.py` you are looking for `jetsonHostName`, it is on line 15:
+---
+
+## Running turnip
+
+Alright, time to start this puppy up! If you are running your jetson nano remotely, follow **Method 1**, if you have your jetson directly bolted on to the nano, follow **Method 2**
+
+### *Method 1*
+
+Ok, I lied, there is one more thing to setup, your bluetooh controller. I highly reccomend using the 8BitDo SN30 pro, as you will not need to rebind buttons. if you do need to rebind buttons, open the robot-control script and between lines 95 - 112 you will find the binding codes. watch [this video](https://www.youtube.com/watch?v=F5-dV6ULeg8) to connect bluetooth controller from terminal. Alternatively connect through rpi gui.
+
+In the raspberry pi, go into the pi folder in my repo: `cd ~/TurnipTheRobot/Pi` and run the start-stream script: `python3 start-stream.sh &` . The `&` makes it run in the background. Now open up the robot-control script and we are going to replace my jetson host name with your jetson ip address you noted down earlier: `sudo nano robot-control.py` you are looking for `jetsonHostName`, it is on line 15:
 
 ``` python
 import serial
@@ -102,27 +120,7 @@ jetsonHostName = "x-jetson" #replace x-jetson with your ip or hostname
 ...
 ```
 
-save with `ctrl+x`, `y`, enter. 
-
----
-
-## More about Turnip
-
-Turnip has two methods of running. The first method is for where your jetson nano is running remotely. This was how I first made turnip, then I later figured out how I could safely mount power and connect the jetson directly on turnip. I then connected a short lan cable to reduce latency and after finishing method 1, I realized I no longer needed the arduino, since the jetson has a breakout board. I thus also didnt need to run the main python script on the pi anymore, all the pi needs to do now is send video to the jetson. The meccanoid servos have propriatary drivers to run on arduino. So I would then need to write my own python library for it. (I am writing all of this before actually doing method 2, and I am basically documenting as I speak haha). But all in all, method 2 completely removes the need for the arduino (in theory).
-
-**Note to self: update this if method 2 fails haha**
-
----
-
-## Running turnip
-
-Alright, time to start this puppy up! If you are running your jetson nano remotely, follow **Method 1**, if you have your jetson directly bolted on to the nano, follow **Method 2**
-
-### *Method 1*
-
-Ok, I lied, there is one more thing to setup. Your bluetooh controller. I highly reccomend using the 8BitDo SN30 pro, as you will not need to rebind buttons. if you do need to rebind buttons, open the robot-control script and between lines 95 - 112 you will find the binding codes. watch [this video](https://www.youtube.com/watch?v=F5-dV6ULeg8) to connect bluetooth controller from terminal. Alternatively connect through rpi gui.
-
-Now run this script: `sudo python3 robot-control.py`. If you have a speaker connected to the pi via aux jack, you will hear turnip speaking. Otherwise, just observe the terminal update to know it's status.
+save with `ctrl+x`, `y`, enter. Now run the script: `sudo python3 robot-control.py`. If you have a speaker connected to the pi via aux jack, you will hear turnip speaking. Otherwise, just observe the terminal update to know it's status.
 
 When robot declares it is in manual mode, you can start using it.
 
